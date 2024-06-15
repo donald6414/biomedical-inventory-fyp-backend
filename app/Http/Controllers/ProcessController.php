@@ -8,12 +8,15 @@ use App\Models\MaintananceReport;
 use App\Models\ScheduleMaintanance;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+
 use Illuminate\Http\Request;
 
 class ProcessController extends Controller
 {
     public function check_schedule_maintenance(){
         $equipments = Equipment::with('latestScheduleMaintenance','department')->get();
+        Log::info($equipments);
 
         for ($i = 0; $i < count($equipments); $i++){
             if ($equipments[$i]->latestScheduleMaintenance){
@@ -23,6 +26,7 @@ class ProcessController extends Controller
                 $days_difference = $today->diff(new \DateTime($last_maintenance));
 
                 $days_to_next_schedule = $equipments[$i]->schedule - $days_difference->days;
+                Log::info("Days to next schedule: " . $days_to_next_schedule);
 
                 if ($days_to_next_schedule == 5){
                     $schedule_maintenance = new ScheduleMaintanance();
@@ -51,8 +55,8 @@ class ProcessController extends Controller
                         'name'=>'',
                         'message'=>'This is to remind you that today is maintenance day',
                         'date'=>$today->addDays($days_to_next_schedule),
-                        'equipment'=>$equipments->name,
-                        'department'=>$equipments->department->name,
+                        'equipment'=>$equipments[$i]->name,
+                        'department'=>$equipments[$i]->department->name,
                     ];
                     for ($j = 0; $j < count($users); $j++){
                         $data['name'] = $users[$j]->name;
@@ -68,6 +72,7 @@ class ProcessController extends Controller
             }
         }
 
+        Log::info("Schedule Maintanance check Processed");
         return true;
     }
 
