@@ -13,6 +13,8 @@
 
     Department: {{$data['department']}}
 
+    Serial Number: {{$data['serial_number']}}
+
     Date: {{$data['date']}}
 
     Thanks,

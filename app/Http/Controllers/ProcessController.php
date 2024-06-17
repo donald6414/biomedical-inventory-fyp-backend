@@ -6,6 +6,7 @@ use App\Mail\ScheduledMaintenance;
 use App\Models\Equipment;
 use App\Models\MaintananceReport;
 use App\Models\ScheduleMaintanance;
+use App\Http\Controllers\SendMessageController;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 class ProcessController extends Controller
 {
     public function check_schedule_maintenance(){
+        $sendMessageController = new SendMessageController();
         $equipments = Equipment::with('latestScheduleMaintenance','department')->get();
         Log::info($equipments);
 
@@ -24,9 +26,10 @@ class ProcessController extends Controller
                 $last_maintenance = $equipments[$i]->latestScheduleMaintenance->date;
 
                 $days_difference = $today->diff(new \DateTime($last_maintenance));
+                Log::info("Days Difference: ". $days_difference->days);
 
                 $days_to_next_schedule = $equipments[$i]->schedule - $days_difference->days;
-                Log::info("Days to next schedule: " . $days_to_next_schedule);
+                Log::info("Days to next schedule: " . $days_to_next_schedule . $equipments[$i]);
 
                 if ($days_to_next_schedule == 5){
                     $schedule_maintenance = new ScheduleMaintanance();
@@ -42,10 +45,12 @@ class ProcessController extends Controller
                         'date'=>$schedule_maintenance->date,
                         'equipment'=>$equipments[$i]->name,
                         'department'=>$equipments[$i]->department->name,
+                        'serial_number'=>$equipments[$i]->serial_no,
                     ];
                     for ($j = 0; $j < count($users); $j++){
                         $data['name'] = $users[$j]->name;
                         \Mail::to($users[$j]->email)->send(new ScheduledMaintenance($data));
+                        $sendMessageController->send_order_message($data,$users[$j]->phone_number);
                     }
 
                 }else if($days_to_next_schedule == 0){
@@ -61,6 +66,7 @@ class ProcessController extends Controller
                     for ($j = 0; $j < count($users); $j++){
                         $data['name'] = $users[$j]->name;
                         \Mail::to($users[$j]->email)->send(new ScheduledMaintenance($data));
+                        $sendMessageController->send_order_message($data,$users[$j]->phone_number);
                     }
                 }
             }else{
