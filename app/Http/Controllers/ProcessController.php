@@ -6,7 +6,7 @@ use App\Mail\ScheduledMaintenance;
 use App\Mail\FaultReport;
 use App\Models\Equipment;
 use App\Models\FaltReport;
-use App\Models\FaltReportMaintenance;
+use App\Models\FaltReportMaintanance;
 use App\Models\MaintananceReport;
 use App\Models\ScheduleMaintanance;
 use App\Http\Controllers\SendMessageController;
@@ -119,11 +119,11 @@ class ProcessController extends Controller
             'description' => 'required|string'
         ]);
 
-        $equipment = Equipment::with('department')->where('qr_id',$qr_token)->get();
+        $equipment = Equipment::with('department')->where('qr_id',$qr_token.".png")->first();
 
         $new_falt = new FaltReport();
         $new_falt->equipment_id = $equipment->id;
-        $new_falt->description = $data->description;
+        $new_falt->description = $data['description'];
         $new_falt->save();
 
         //Prepare data for email notification
@@ -132,13 +132,13 @@ class ProcessController extends Controller
         $sendMessageController = new SendMessageController();
         for ($i=0; $i < count($users); $i++) { 
             $data = array(
-                "name"=>$users[$j]->name,
+                "name"=>$users[$i]->name,
                 "equipment_name"=>$equipment->name,
                 "equipment_serial_no"=>$equipment->serial_no,
                 "department"=>$equipment->department->name,
-                "issue"=>$data->description
+                "issue"=>$data['description']
             );
-            \Mail::to($users[$j]->email)->send(new FaultReport($data));
+            \Mail::to($users[$i]->email)->send(new FaultReport($data));
             $sendMessageController->send_fault_report("Fault Alert: " . $data['equipment_name'] . " Serial Number: " . $data['equipment_serial_no'] . " Department: " . $data['department'],$users[$i]->phone_number);
         }
     }
@@ -155,13 +155,17 @@ class ProcessController extends Controller
             'status' => 'required'
         ]);
 
-        $maintenance_report = new FaltReportMaintenance();
-        $maintenance_report->user_id = auth()->user()->id;
+        $maintenance_report = new FaltReportMaintanance();
+        // $maintenance_report->user_id = auth()->user()->id;
         $maintenance_report->falt_report_id = $fault_reported;
         $maintenance_report->title = $request->title;
         $maintenance_report->description = $request->description;
         $maintenance_report->status = $request->status ? 1 : 0;
         $maintenance_report->save();
+
+        $fault_reported = FaltReport::findOrFail($fault_reported);
+        $fault_reported->is_done = $request->status ? 1 : 0;
+        $fault_reported->save();
 
         return response()->json([200,"Okay"]);
     }

@@ -1,14 +1,28 @@
 <x-mail::message>
 # Hello {{$data['name']}}
 
-This is to notify you that, 
-there is a fault reported as per details below.
-Equipment Name: {{$data['equipment_name']}}
-Equipment Serial Number: {{$data['equipment_serial_no']}}
-Department: {{$data['department']}}
+<p>
+    This is to notify you that,
+</p> 
+<p>
+    there is a fault reported as per details below.
+</p>
+<p>
+    Equipment Name: {{$data['equipment_name']}}
+</p>
+<p>
+    Equipment Serial Number: {{$data['equipment_serial_no']}}
+</p>
+<p>
+    Department: {{$data['department']}}
+</p>
 
-Description:
-{{$data['issue']}}
+<p>
+    Description
+</p>
+<p>
+    {{$data['issue']}}
+</p>
 Thanks,<br>
 {{ config('app.name') }}
 </x-mail::message>
