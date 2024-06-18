@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Mail\ScheduledMaintenance;
+use App\Mail\FaultReport;
 use App\Models\Equipment;
+use App\Models\FaltReport;
+use App\Models\FaltReportMaintenance;
 use App\Models\MaintananceReport;
 use App\Models\ScheduleMaintanance;
 use App\Http\Controllers\SendMessageController;
@@ -107,6 +110,58 @@ class ProcessController extends Controller
         $schedule_maintenance = ScheduleMaintanance::findOrFail($id);
         $schedule_maintenance->is_done = $maintenance_report->status == 1 ? 1 : 0;
         $schedule_maintenance->save();
+
+        return response()->json([200,"Okay"]);
+    }
+
+    public function send_fault_report(Request $request,$qr_token){
+        $data = request()->validate([
+            'description' => 'required|string'
+        ]);
+
+        $equipment = Equipment::with('department')->where('qr_id',$qr_token)->get();
+
+        $new_falt = new FaltReport();
+        $new_falt->equipment_id = $equipment->id;
+        $new_falt->description = $data->description;
+        $new_falt->save();
+
+        //Prepare data for email notification
+        $users = User::where('role_id',1)->get();
+
+        $sendMessageController = new SendMessageController();
+        for ($i=0; $i < count($users); $i++) { 
+            $data = array(
+                "name"=>$users[$j]->name,
+                "equipment_name"=>$equipment->name,
+                "equipment_serial_no"=>$equipment->serial_no,
+                "department"=>$equipment->department->name,
+                "issue"=>$data->description
+            );
+            \Mail::to($users[$j]->email)->send(new FaultReport($data));
+            $sendMessageController->send_fault_report("Fault Alert: " . $data['equipment_name'] . " Serial Number: " . $data['equipment_serial_no'] . " Department: " . $data['department'],$users[$i]->phone_number);
+        }
+    }
+
+    public function get_falt_reports(){
+        $reported_fault = FaltReport::with('equipment.department')->where('is_done',0)->get();
+        return response()->json($reported_fault);
+    }
+
+    public function save_reported_fault(Request $request,$fault_reported){
+        $data = request()->validate([
+            'title' => 'required|string',
+            'description' => 'required|string',
+            'status' => 'required'
+        ]);
+
+        $maintenance_report = new FaltReportMaintenance();
+        $maintenance_report->user_id = auth()->user()->id;
+        $maintenance_report->falt_report_id = $fault_reported;
+        $maintenance_report->title = $request->title;
+        $maintenance_report->description = $request->description;
+        $maintenance_report->status = $request->status ? 1 : 0;
+        $maintenance_report->save();
 
         return response()->json([200,"Okay"]);
     }

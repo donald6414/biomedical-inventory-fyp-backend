@@ -41,6 +41,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
 //Schedule Routes
 Route::get('check-schedule-maintenance', [\App\Http\Controllers\ProcessController::class, 'check_schedule_maintenance']);
+// Fault report
+Route::post('send-fault-report/{qr_token}', [\App\Http\Controllers\ProcessController::class, 'send_fault_report']);
+Route::get('get-fault-reports', [\App\Http\Controllers\ProcessController::class, 'get_falt_reports']);
+Route::post('save-reported_fault/{fault_reported}', [\App\Http\Controllers\ProcessController::class, 'save_reported_fault']);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
